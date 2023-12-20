@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://unpkg.com/htmx.org@1.9.9" integrity="sha384-QFjmbokDn2DjBjq+fM+8LUIVrAgqcNW2s0PjAxHETgRn9l4fvX31ZxDxvwQnyMOX" crossorigin="anonymous"></script>
+    <title>Document</title>
+</head>
+<body>
+    <div>
+        <button id="create">
+            navigator.credentials.create
+        </button>
+
+        <button hx-get="/" hx-swap="outerHTML">
+            Click Me
+        </button>
+    </div>
+</body>
+</html>
+
+<script>
+  const createBtn = document.getElementById('create');
+
+  const publicKeyCredentialCreationOptions = {
+    challenge: Uint8Array.from(
+      "121212", c => c.charCodeAt(0)),
+    rp: {
+      name: "Duo Security",
+      id: "localhost",
+    },
+    user: {
+      id: Uint8Array.from(
+        "UZSL85T9AFC", c => c.charCodeAt(0)),
+      name: "lee@webauthn.guide",
+      displayName: "Lee",
+    },
+    pubKeyCredParams: [{alg: -7, type: "public-key"}],
+    authenticatorSelection: {
+      authenticatorAttachment: "platform",
+    },
+    timeout: 60000,
+    attestation: "direct"
+  };
+
+
+  createBtn.addEventListener('click', asyncFn);
+
+  async function asyncFn() {
+    console.log("publicKeyCredentialCreationOptions = ", publicKeyCredentialCreationOptions);
+
+
+    const credential = await navigator.credentials.create({
+      publicKey: publicKeyCredentialCreationOptions
+    });
+
+    console.log(credential);
+
+    console.log("==========");
+
+    console.log(credential.id);
+    console.log(credential.type);
+
+
+    return credential
+  }
+
+
+
+
+
+
+</script>
