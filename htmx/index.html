@@ -24,52 +24,101 @@
 <script>
   const createBtn = document.getElementById('create');
 
-  const publicKeyCredentialCreationOptions = {
-    challenge: Uint8Array.from(
-      "121212", c => c.charCodeAt(0)),
-    rp: {
-      name: "Duo Security",
-      id: "localhost",
-    },
-    user: {
-      id: Uint8Array.from(
-        "UZSL85T9AFC", c => c.charCodeAt(0)),
-      name: "lee@webauthn.guide",
-      displayName: "Lee",
-    },
-    pubKeyCredParams: [{alg: -7, type: "public-key"}],
-    authenticatorSelection: {
-      authenticatorAttachment: "platform",
-    },
-    timeout: 60000,
-    attestation: "direct"
-  };
+  // const publicKeyCredentialCreationOptions = {
+  //   challenge: Uint8Array.from(
+  //     "121212", c => c.charCodeAt(0)),
+  //   rp: {
+  //     name: "Duo Security",
+  //     id: "localhost",
+  //   },
+  //   user: {
+  //     id: Uint8Array.from(
+  //       "UZSL85T9AFC", c => c.charCodeAt(0)),
+  //     name: "lee@webauthn.guide",
+  //     displayName: "Lee",
+  //   },
+  //   pubKeyCredParams: [{alg: -7, type: "public-key"}],
+  //   authenticatorSelection: {
+  //     authenticatorAttachment: "platform",
+  //   },
+  //   timeout: 60000,
+  //   attestation: "direct"
+  // };
 
 
   createBtn.addEventListener('click', asyncFn);
 
   async function asyncFn() {
-    console.log("publicKeyCredentialCreationOptions = ", publicKeyCredentialCreationOptions);
 
+    // 1. challenge를 받아온다
+
+    const json = await (async () => {
+      const res = await fetch("/login/get_challenge", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      return res.json();
+    })();
+
+    console.log(json.publicKey);
+
+    const ccr = json.publicKey
+
+    // challenge, id는 type 때문에 변환해줌
+    ccr.challenge = Uint8Array.from(ccr.challenge, c => c.charCodeAt(0));
+    ccr.user.id = Uint8Array.from(ccr.user.id, c => c.charCodeAt(0));
+
+    // 브라우저는 ccr을 받아서 navigator.credentials.create 호출해서 option으로 ccr 넣어서 다시 서버로 요청
 
     const credential = await navigator.credentials.create({
-      publicKey: publicKeyCredentialCreationOptions
+      publicKey: ccr
     });
 
-    console.log(credential);
+    const serializeable = {
+      authenticatorAttachment: credential.authenticatorAttachment,
+      id: credential.id,
+      rawId: bufferToBase64url(credential.rawId),
+      response: {
+        attestationObject: bufferToBase64url(credential.response.attestationObject),
+        clientDataJSON: bufferToBase64url(credential.response.clientDataJSON)
+      },
+      type: credential.type
+    };
 
-    console.log("==========");
+    console.log(serializeable);
 
-    console.log(credential.id);
-    console.log(credential.type);
-
-
-    return credential
+    const res = await fetch("/login/member_register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(serializeable),
+    })
   }
 
+  function bufferToBase64url (buffer) {
 
+    // modified from https://github.com/github/webauthn-json/blob/main/src/webauthn-json/base64url.ts
 
+    const byteView = new Uint8Array(buffer);
+    let str = "";
+    for (const charCode of byteView) {
+      str += String.fromCharCode(charCode);
+    }
 
+    // Binary string to base64
+    const base64String = btoa(str);
 
+    // Base64 to base64url
+    // We assume that the base64url string is well-formed.
+    const base64urlString = base64String.replace(/\+/g, "-").replace(
+      /\//g,
+      "_",
+    ).replace(/=/g, "");
+    return base64urlString;
+  }
 
 </script>
