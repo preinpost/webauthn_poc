@@ -18,12 +18,17 @@
         <button hx-get="/" hx-swap="outerHTML">
             Click Me
         </button>
+
+        <button id="get">
+            navigator.credentials.get
+        </button>
     </div>
 </body>
 </html>
 
 <script>
   const createBtn = document.getElementById('create');
+  const getBtn = document.getElementById('get');
 
   // const publicKeyCredentialCreationOptions = {
   //   challenge: Uint8Array.from(
@@ -48,11 +53,12 @@
 
 
   createBtn.addEventListener('click', asyncFn);
+  getBtn.addEventListener('click', asyncGetFn);
+
 
   async function asyncFn() {
 
     // 1. challenge를 받아온다
-
     const json = await (async () => {
       const res = await fetch("/login/get_challenge", {
         method: "GET",
@@ -92,6 +98,61 @@
     console.log("serializeable = ", serializeable);
 
     const res = await fetch("/login/member_register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(serializeable),
+    })
+  }
+
+  async function asyncGetFn() {
+    // 1. rcr을 받아온다
+    const json = await (async () => {
+      const res = await fetch("/login/get_login_challenge", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      return res.json();
+    })();
+
+    const rcr = json.publicKey;
+
+    // challenge, id는 type 때문에 변환해줌
+    rcr.challenge = base64urlToUint8Array(rcr.challenge);
+    rcr.allowCredentials = rcr.allowCredentials.map((ac) => {
+      ac.id = base64urlToUint8Array(ac.id);
+      return ac;
+    })
+
+    console.log("rcr = ", rcr);
+
+    // 브라우저는 ccr을 받아서 navigator.credentials.create 호출해서 option으로 ccr 넣어서 다시 서버로 요청
+    const credential = await navigator.credentials.get({
+      publicKey: rcr
+    });
+
+    console.log("credential = ", credential);
+
+    const serializeable = {
+      authenticatorAttachment: credential.authenticatorAttachment,
+      id: credential.id,
+      rawId: bufferToBase64url(credential.rawId),
+      response: {
+        authenticatorData: bufferToBase64url(credential.response.authenticatorData),
+        clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
+        signature: bufferToBase64url(credential.response.signature),
+        userHandle: bufferToBase64url(credential.response.userHandle)
+      },
+      type: credential.type
+    };
+
+    console.log("serializeable = ", serializeable);
+
+    const res = await fetch("/login/member_login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
