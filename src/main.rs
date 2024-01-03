@@ -7,7 +7,7 @@ use actix_session::storage::CookieSessionStore;
 use actix_web::{App, Error, get, HttpRequest, HttpResponse, HttpServer, post, Responder, web};
 use actix_web::cookie::Key;
 use actix_web::middleware::Logger;
-use actix_web::web::{Data, Json, JsonConfig};
+use actix_web::web::{Bytes, Data, Json, JsonConfig};
 use base64::Engine;
 use base64::engine::general_purpose;
 use log::info;
@@ -63,16 +63,18 @@ async fn get_challenge(webauthn: Data<Webauthn>, session: Session) -> Json<Creat
         )
         .expect("Failed to start registration.");
 
+    info!("before reg_state {:?}", &reg_state);
     session.insert("reg_state", reg_state).expect("fail to insert reg_state");
+    info!("Registration Challenge: {:?}", ccr);
 
     Json(ccr)
 }
 
 #[post("member_register")]
 async fn member_register(req: Json<RegisterPublicKeyCredential>, webauthn: Data<Webauthn>, session: Session) -> HttpResponse {
-    info!("req = {:?}", req);
+    // info!("req = {:?}", &req);
     let reg_state = session.get::<PasskeyRegistration>("reg_state").unwrap().unwrap();
-    info!("reg_state = {:?}", reg_state);
+    // info!("after reg_state = {:?}", &reg_state);
 
     let sk = webauthn
         .finish_passkey_registration(&req, &reg_state)

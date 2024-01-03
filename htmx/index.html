@@ -6,6 +6,7 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <script src="https://unpkg.com/htmx.org@1.9.9" integrity="sha384-QFjmbokDn2DjBjq+fM+8LUIVrAgqcNW2s0PjAxHETgRn9l4fvX31ZxDxvwQnyMOX" crossorigin="anonymous"></script>
+<!--    <script src="https://cdn.jsdelivr.net/npm/js-base64@3.7.4/base64.min.js"></script>-->
     <title>Document</title>
 </head>
 <body>
@@ -63,19 +64,19 @@
       return res.json();
     })();
 
-    console.log(json.publicKey);
-
     const ccr = json.publicKey
 
     // challenge, id는 type 때문에 변환해줌
-    ccr.challenge = Uint8Array.from(ccr.challenge, c => c.charCodeAt(0));
-    ccr.user.id = Uint8Array.from(ccr.user.id, c => c.charCodeAt(0));
+    ccr.challenge = Uint8Array.from(atob(ccr.challenge.replace(/-/g, '+').replace(/_/g, '/').replace(/\s/g, '')), c => c.charCodeAt(0))
+    ccr.user.id = Uint8Array.from(atob(ccr.user.id.replace(/-/g, '+').replace(/_/g, '/').replace(/\s/g, '')), c => c.charCodeAt(0))
+    console.log("ccr = ", ccr);
 
     // 브라우저는 ccr을 받아서 navigator.credentials.create 호출해서 option으로 ccr 넣어서 다시 서버로 요청
-
     const credential = await navigator.credentials.create({
       publicKey: ccr
     });
+
+    console.log("credential = ", credential);
 
     const serializeable = {
       authenticatorAttachment: credential.authenticatorAttachment,
@@ -88,7 +89,7 @@
       type: credential.type
     };
 
-    console.log(serializeable);
+    console.log("serializeable = ", serializeable);
 
     const res = await fetch("/login/member_register", {
       method: "POST",
