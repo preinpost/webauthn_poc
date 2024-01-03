@@ -67,8 +67,8 @@
     const ccr = json.publicKey
 
     // challenge, id는 type 때문에 변환해줌
-    ccr.challenge = Uint8Array.from(atob(ccr.challenge.replace(/-/g, '+').replace(/_/g, '/').replace(/\s/g, '')), c => c.charCodeAt(0))
-    ccr.user.id = Uint8Array.from(atob(ccr.user.id.replace(/-/g, '+').replace(/_/g, '/').replace(/\s/g, '')), c => c.charCodeAt(0))
+    ccr.challenge = base64urlToUint8Array(ccr.challenge);
+    ccr.user.id = base64urlToUint8Array(ccr.user.id);
     console.log("ccr = ", ccr);
 
     // 브라우저는 ccr을 받아서 navigator.credentials.create 호출해서 option으로 ccr 넣어서 다시 서버로 요청
@@ -100,7 +100,7 @@
     })
   }
 
-  function bufferToBase64url (buffer) {
+  function bufferToBase64url(buffer) {
 
     // modified from https://github.com/github/webauthn-json/blob/main/src/webauthn-json/base64url.ts
 
@@ -120,6 +120,10 @@
       "_",
     ).replace(/=/g, "");
     return base64urlString;
+  }
+
+  function base64urlToUint8Array(str) {
+    return Uint8Array.from(atob(str.replace(/-/g, '+').replace(/_/g, '/').replace(/\s/g, '')), c => c.charCodeAt(0))
   }
 
 </script>
